@@ -1,0 +1,235 @@
+<template>
+<div class="import-list">
+
+    <div class="import-search-bar">
+        <div class="import-search-bar-op">
+            <span>文件类型：</span>
+            <ui-dropdownmenu class="fileTypeSelect" value="{=dataType=}">
+                <ui-menuitem  san-for="ele in data.fileContent" value="{{ele.value}}" label="{{ele.title}}" title="{{ele.title}}" />
+                <ui-icon slot="iconButton">arrow_drop_down</san-icon>
+            </ui-dropdownmenu>
+            <ui-input hintText="文件描述" inputValue="{=descpt=}" errorText="{{errorText}}"/>
+            <ui-button
+                on-click="handleImport"
+                variants="info raised"
+                class="import-button">导入</ui-button>
+            <ui-button
+                variants="info raised"
+                on-click="handleDownload">下载</ui-button>
+        </div>
+    </div>
+
+    <div>
+        <ui-table
+            fields="{{fields}}"
+            data="{{data.list}}"
+            operatorColumn="{{listOperator}}"
+            on-operate="itemOperate($event)">
+        </ui-table>
+        <div san-if="data.count > pageSize"
+            class="list-pagination">
+            <ui-pagination
+                san-ref="pager"
+                total="{{data.count}}"
+                current="{{currentPage}"
+                pageSize="{{pageSize}}"
+                showSizeChanger="false"
+                on-pageChange="onPageChange($event)"></ui-pagination>
+        </div>
+
+        <ui-dialog open="{{open}}" class="configDelDialog" width="{{300}}">
+            <div slot="title">
+                确认要删除吗？
+            </div>
+            <div slot="actions">
+                <ui-button on-click="onCancel" variants="info">取消</ui-button>
+                <ui-button on-click="onConfirm" variants="success">确认</ui-button>
+            </div>
+        </ui-dialog>
+
+    </div>
+
+</div>
+</template>
+
+<script>
+import Pagination from 'san-mui/Pagination';
+import {Button, IconButton} from 'san-mui/Button';
+import Icon from 'san-mui/Icon'
+import {connect} from 'san-store';
+import TextField from 'san-mui/TextField';
+import {routeTo} from '../../common/router';
+import Table from '../../common/ui/Table';
+import Dialog from 'san-mui/Dialog';
+import {} from '../service';
+import Notification from '../../common/ui/Notification';
+import {DropDownMenu, MenuItem} from 'san-mui/Menu';
+
+import {
+    IMPORT_LIST,
+    IMPORT_LIST_FETCH
+} from './actions';
+
+import {
+    id as idField,
+    type as typeField,
+    descpt as descptField,
+    importNum as importNumField,
+    sucNum as sucNumField,
+    failNum as failNumField,
+    status as statusField,
+    createUser as createUserField,
+    createTime as createTimeField,
+    modifyTime as modifyTimeField,
+    percentage as percentageField
+} from './fields';
+
+
+export default connect.san(
+    {
+        data: IMPORT_LIST
+    },
+    {
+        list: IMPORT_LIST_FETCH
+    }
+)({
+    components: {
+        'ui-pagination': Pagination,
+        'ui-button': Button,
+        'ui-input': TextField,
+        'ui-icon': Icon,
+        'ui-icon-button': IconButton,
+        'ui-table': Table,
+        'ui-dialog': Dialog,
+        'ui-dropdownmenu': DropDownMenu,
+        'ui-menuitem': MenuItem,
+    },
+
+    initData() {
+        return {
+            uploadAction: '/cms/import/import',
+            pageSize: 15,
+            currentPage: 1,
+            fields: [
+                idField,
+                typeField,
+                descptField,
+                importNumField,
+                sucNumField,
+                failNumField,
+                statusField,
+                createUserField,
+                createTimeField,
+                modifyTimeField,
+                percentageField
+            ]
+        };
+    },
+
+    inited() {
+    },
+
+    /**
+     * 分页操作的 action
+     *
+     * @param  {number} page 页码
+     */
+
+    onPageChange(page) {
+        this.data.set('currentPage', page.pageNum);
+        let currentPage = page.pageNum;
+        let limits = this.data.get('pageSize');
+        this.actions.list({page: currentPage, limits});
+    },
+
+    attached() {
+        let limits = this.data.get('pageSize');
+        let page = this.data.get('currentPage');
+        this.actions.list({page, limits});
+        this.watch('descpt', val => {
+            if (val) {
+                this.data.set('errorText', '');
+            }
+        });
+    },
+
+    uploadDone(event) {
+        if (event.errno === 0) {
+            Notification.info('文件上传成功');
+            let limits = this.data.get('pageSize');
+            this.actions.list({page: 1, limits});
+            this.ref('pager').setCurrentPage(1, true);
+            this.data.set('dataType', -1);
+            this.data.set('descpt', '');
+            alog('cus.fire', 'time', {z_import_list_end: Date.now()});
+        }
+        else {
+            Notification.error(event.errmsg);
+        }
+    },
+
+    handleImport() {
+        let descpt = this.data.get('descpt');
+        let dataType = this.data.get('dataType') || this.data.get('data').fileContent[0].value;
+        if (dataType === -1) {
+            Notification.error('请选择文件类型');
+            return;
+        }
+        if (!descpt) {
+            Notification.error('需要填写文件描述');
+            this.data.set('errorText', '不能为空');
+            return;
+        }
+        alog('cus.fire', 'time', {z_import_list_start: Date.now()});
+        this.ref('import').data.set('params', {descpt, dataType});
+        this.ref('import').handleClick();
+    },
+
+    handleDownload() {
+        let dataType = this.data.get('dataType') || this.data.get('data').fileContent[0].value;
+        if (dataType === -1) {
+            Notification.error('请选择文件类型');
+            return;
+        }
+        // let host = 'http://10.101.44.87:8000';
+        let host  = '';
+        let url = '/cms/import/downloadTpl?dataType=' + dataType;
+        window.open(host + url, '_blank');
+    },
+
+    route() {
+    }
+})
+</script>
+<style lang="stylus">
+.import-list
+    .import-search-bar-op
+        .sm-dropdown-menu
+            margin-right: 10px
+            display: inline-block
+            &-selected
+                line-height: 32px
+                i
+                    top: 5px
+    .import-file-button
+        display: none
+    .import-button
+        display: inline-block
+        margin-left: 15px
+        margin-right: 15px
+    .sm-table-col-createTime
+        white-space: normal
+        word-break: break-all
+    .sm-table-col-startTime
+        white-space: normal
+        word-break: break-all
+    .sm-table-col-modifyTime
+        white-space: normal
+        word-break: break-all
+    .sm-table-col-endTime
+        white-space: normal
+        word-break: break-all
+    .sm-table-col-op
+        white-space: normal
+        word-break: break-all
+</style>

@@ -1,0 +1,109 @@
+/**
+ * @file 侧边栏组件
+ * @author  sunwei11
+ * @update  funa01
+ */
+
+<template>
+
+<div class="app-menu-list">
+    <san-list selectable
+        class="menu-list-group"
+        value="{{selectValue}}">
+        <san-list-item
+            class="menu-list{{menuItem.children ? '-group' : ''}}-item"
+            san-for="menuItem in menus"
+            primaryText="{{menuItem.name}}"
+            on-click="listItemSelect(menuItem.url)"
+            toggleNested="{{menuItem.children && openToggle}}"
+            open="{{menuItem.open}}"
+            primaryTogglesNestedList
+            value="{{menuItem.url}}">
+            <i class="{{menuItem.icon}}" slot="left"></i>
+            <san-list-item
+                class="menu-list-group-more"
+                slot="nested"
+                san-for="subItem in menuItem.children"
+                primaryText="{{subItem.name}}"
+                on-click="listItemSelect(subItem.url)"
+                primaryTogglesNestedList
+                value="{{subItem.url}}"
+                >
+                <i class="{{subItem.icon}}" slot="left"></i>
+            </san-list-item>
+        </san-list-item>
+    </san-list>
+</div>
+
+</template>
+
+<script>
+
+import {MenuItem, Divider} from 'san-mui/Menu';
+import {List, ListItem} from 'san-mui/List';
+import Icon from 'san-mui/Icon';
+import Avatar from 'san-mui/Avatar';
+
+export default {
+
+    components: {
+        'san-icon': Icon,
+        'san-list': List,
+        'san-list-item': ListItem,
+        'san-menu-item': MenuItem,
+        'san-menu-divider': Divider,
+        'san-avatar': Avatar
+    },
+
+    initData() {
+        return {
+            selectValue: -1,
+            menus: []
+        }
+    },
+
+    listItemSelect(value) {
+        this.fire('select', value);
+    }
+}
+
+
+</script>
+
+<style lang="stylus">
+    .app-menu-list
+        width: 200px
+
+        .sm-list
+            background: #3a3f51
+            color: #8b8e99
+            padding: 0
+
+        .sm-list-item
+            &.selected
+                color: #fff
+
+            .sm-list-item-expand
+                width: 40px
+                height: 40px
+
+                .sm-icon
+                    line-height: 40px
+
+        .sm-list-item-content
+            padding-left: 45px !important
+            padding-top: 13px
+            padding-bottom: 13px
+
+            .sm-list-item-primary-text
+                font-size: 14px
+
+        .sm-list-item-nested
+            background: #3a3f51
+            margin-left: -18px
+
+        .menu-list-group-more, .menu-list-item
+            &:hover
+                color: #fff
+
+</style>

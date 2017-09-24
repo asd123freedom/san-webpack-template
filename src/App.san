@@ -1,0 +1,334 @@
+/**
+ * @file 框架头部和侧边栏
+ * @author  Erik
+ *          menglingjun
+ *          sunwei11
+ * @update 根据url选中相应二级菜单  funa01
+ */
+
+<template>
+    <div id="app">
+
+        <div class="app-drawer {{hiddenTitle ? '' : 'hidden-title'}}">
+
+            <san-appbar
+                title="{{titleName}}"
+                class="app-drawer-appbar">
+                <i class="fa fa-paw" slot="left"></i>
+            </san-appbar>
+
+            <div class="app-drawer-content">
+                <app-menu menus='{{menus}}' openToggle="{{openMenu}}" on-select="handleMenuSelect($event)" selectValue="{{menuVal}}" />
+            </div>
+
+        </div>
+
+        <san-appbar
+            title="{{navTitle}}"
+            class="app-appbar {{openMenu ? '': 'hide-menu'}}">
+
+            <san-icon-button
+                on-click="toggleMenu($event)"
+                variants="toggle"
+                slot="left">
+                <i class="fa fa-dedent fa-fw"></i>
+            </san-icon-button>
+            <div class="user-info app-follow-list" slot="right">
+                <img san-if="userInfo.userhead"
+                    class="user-info-head"
+                    src="{{userInfo.userhead}}"
+                    alt="用户头像"/>
+                <san-button
+                    variants="toggle user-info-box">
+                    {{userInfo.username}}
+                </san-button>
+            </div>
+
+        </san-appbar>
+
+        <div class="app-content {{openMenu ? '': 'hide-menu'}}">
+            <div id="content"></div>
+        </div>
+
+
+    </div>
+</template>
+
+<script>
+
+// route
+import {router} from 'san-router';
+
+// ui
+import Appbar from 'san-mui/AppBar';
+import Drawer from 'san-mui/Drawer';
+import IconButton from 'san-mui/Button/IconButton';
+import Button from 'san-mui/Button';
+import 'font-awesome/css/font-awesome'
+import {IconMenu, MenuItem} from 'san-mui/Menu';
+import AppMenu from './common/ui/AppMenu';
+import {fetch as fetchUser} from './common/user';
+import {routeTo} from './common/router';
+
+export default {
+
+    components: {
+        'san-appbar': Appbar,
+        'san-drawer': Drawer,
+        'san-icon-button': IconButton,
+        'san-button': Button,
+        'app-menu': AppMenu,
+        'san-iconmenu': IconMenu,
+        'san-menuitem': MenuItem
+    },
+
+    defaultData: {
+        userInfo: {},
+        navTitle: '',
+        openMenu: true,
+        hiddenTitle: true
+    },
+
+    initData() {
+        return {
+            userInfo: {username: '123'},
+            navTitle: '',
+            openMenu: true,
+            menuVal: '/',
+            hiddenTitle: true,
+            menus: [],
+            titleName: '',
+            test: '12111'
+        }
+    },
+
+    inited() {
+    },
+
+
+    computed: {
+
+        navMap() {
+            var navMap = {};
+            function addNav(menu) {
+                menu.forEach(item => {
+                    if (item.url) {
+                        navMap[item.url] = {name: item.name};
+                    }
+                    if (item.children) {
+                        addNav(item.children);
+                    }
+                })
+            }
+            addNav(this.data.get('menus'));
+            return navMap;
+        },
+
+        navTitle() {
+            var menuVal = this.data.get('menuVal');
+            var navMap = this.data.get('navMap');
+            var current = navMap[menuVal] || {};
+            return current.name || '';
+        }
+    },
+
+    handleMenuSelect(value) {
+        if (value) {
+            this.routePath = value;
+            routeTo(value);
+        }
+    },
+
+    toggleMenu() {
+        var openMenu = this.data.get('openMenu');
+        this.data.set('openMenu', !openMenu);
+
+        var hiddenTitle = this.data.get('hiddenTitle');
+        this.data.set('hiddenTitle', !hiddenTitle);
+    },
+
+    startRouter() {
+        router.listen((e, config) => {
+            let configData = config.data || {};
+            if (configData.nav && !configData.hasQuery) {
+                this.data.set('menuVal', configData.nav);
+            }
+            else {
+                this.routePath = this.routePath || window.location.hash.substr(1);
+                this.data.set('menuVal', this.routePath);
+            }
+
+            // 二级菜单时，打开上一级菜单
+            if (configData.parent) {
+                this.data.get('menus').forEach((item, index) => {
+                    if (item.name === configData.parent) {
+                        this.data.set(`menus[${index}].open`, true);
+                    }
+                });
+            }
+        });
+        router.start();
+    },
+
+    getUserInfo() {
+        return fetchUser().then(res => {
+            if (!res || !res.data) {
+                return;
+            }
+            let data = res.data.data;
+            if (res.data.errno === 0 ) {
+                this.data.set('userInfo', data.userInfo);
+                this.data.set('logoutUrl', data.logoutUrl);
+                return data;
+            }
+            else {
+                location.href = data.loginUrl;
+                return Promise.reject('你没有登录');
+            }
+
+        });
+    },
+
+    loginOut() {
+        location.href = this.data.get('logoutUrl');
+    },
+
+    attached() {
+
+        Promise.resolve()
+            .then(this.startRouter.bind(this));
+    }
+}
+
+</script>
+
+<style lang="stylus">
+
+$-app-theme-color = #3a3f51
+$-app-drawer-width = 200px
+$-app-appbar-height = 50px
+
+
+.app-drawer
+    width: $-app-drawer-width
+    position: fixed
+    top: 0
+    bottom: 0
+    overflow: auto
+    box-shadow: 0 4px 10px 0 rgba(255, 255, 255, 0.10)
+    background: $-app-theme-color
+
+    &.state-open
+        .sm-drawer-content
+            box-shadow: none
+
+
+    &.hidden-title
+        width: 50px
+
+        .sm-appbar-title
+            display: none
+
+        .sm-list-item-primary-text
+            visibility: hidden
+
+        .sm-list-item-content
+            padding-left: 12px
+
+        .menu-list-group-more
+            padding: 0
+
+        .sm-list-item-nested
+            display: none
+
+.app-drawer-appbar
+    background: $-app-theme-color
+    color: #c1c3c9
+    height: 50px
+    line-height: 50px
+    box-shadow: 0 2px 2px rgba(0, 0, 0, .05)
+
+
+.app-drawer-content
+    background: $-app-theme-color
+    overflow: auto
+    position: absolute
+    top: 52px
+    right: 0
+    bottom: 0
+    left: 0
+    z-index: 100
+
+    .sm-menuitem
+        color: #fff
+
+    .sm-menuitem:hover
+        background: #3f4e61
+
+    .sm-menuitem.selected
+        background: #556e8d
+
+
+.app-appbar
+    position: fixed
+    left: $-app-drawer-width
+    right: 0
+    top: 0
+    width: auto
+    background: #fff
+    color: #fff
+    z-index: 10
+    padding: 0 16px
+    height: $-app-appbar-height
+    line-height: $-app-appbar-height
+    box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.10)
+    .variant-toggle
+        background: #fff
+        color: #333
+        i
+            font-size: 14px !important
+
+    .sm-appbar-right
+        position: relative
+
+    .sm-appbar-title
+        font-size: 20px
+        padding: 0 12px
+
+    &.hide-menu
+        left: 50px
+
+.app-appbar-user
+    min-width: 160px
+    margin-right: 25px
+    cursor: pointer
+
+.app-content
+    height: 100%
+    padding-top: $-app-appbar-height
+    padding-left: $-app-drawer-width
+    /*transition: all .3s cubic-bezier(.4, 0, .2, 1)*/
+
+    &.hide-menu
+        padding-left: 50px
+
+.user-info
+    height: 25px
+    display: flex
+    align-items: center
+    flex: 1
+
+.user-info-head
+    width: 25px
+    height: 25px
+    margin-right: 6px
+    border-radius: 50%
+
+.user-drop
+    display: none
+
+#content
+    padding: 16px 20px
+
+
+</style>
