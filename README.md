@@ -17,7 +17,7 @@ npm run release
 ## 路由
 项目使用的路由是 [san-router](https://github.com/ecomfe/san-router)，项目的src代码中已经提供一个左侧菜单的例子，该菜单支持子菜单，路由的配置项在`src/mip/routes.js`当中，示例如下：
 
-``` JSON
+``` javascript
 {
      rule: '/mip/list/import',
      Component: ImportList,
