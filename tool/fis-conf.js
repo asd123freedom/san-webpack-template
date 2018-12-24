@@ -16,8 +16,8 @@ fis.media('local').match('*', {
 });
 
 // cms
-let CMS_HOST = 'http://cp01-rdqa-dev336.cp01.baidu.com:8192/';
-let CMS_DIR = '/home/users/zhangwanlong/dev/odp';
+let CMS_HOST = 'http://xxx.baidu.com/';
+let CMS_DIR = '/home/users/xxx';
 fis.media('cms').match('!(*.html)', {
     useCompile: false,
     deploy: fis.plugin('http-push', {
